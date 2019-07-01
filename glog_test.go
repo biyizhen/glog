@@ -19,7 +19,6 @@ package glog
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	stdLog "log"
 	"path/filepath"
 	"runtime"
@@ -27,7 +26,36 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestRotateByTime(t *testing.T) {
+	assert := assert.New(t)
+	timeArray := [][5]string{
+		{"2006-01-02 03:04:05 PM", "2006-02-01 12:00:00 AM", "2006-01-03 12:00:00 AM", "2006-01-02 04:00:00 PM", "2006-01-02 03:05:00 PM"},
+		{"2019-12-31 11:59:59 PM", "2020-01-01 12:00:00 AM", "2020-01-01 12:00:00 AM", "2020-01-01 12:00:00 AM", "2020-01-01 12:00:00 AM"},
+		{"2019-12-31 05:50:49 PM", "2020-01-01 12:00:00 AM", "2020-01-01 12:00:00 AM", "2019-12-31 06:00:00 PM", "2019-12-31 05:51:00 PM"},
+		{"2019-01-31 08:14:58 PM", "2019-02-01 12:00:00 AM", "2019-02-01 12:00:00 AM", "2019-01-31 09:00:00 PM", "2019-01-31 08:15:00 PM"},
+		{"2019-02-01 03:04:40 PM", "2019-03-01 12:00:00 AM", "2019-02-02 12:00:00 AM", "2019-02-01 04:00:00 PM", "2019-02-01 03:05:00 PM"},
+		{"2019-02-28 03:04:31 PM", "2019-03-01 12:00:00 AM", "2019-03-01 12:00:00 AM", "2019-02-28 04:00:00 PM", "2019-02-28 03:05:00 PM"},
+		{"2019-03-31 10:35:42 PM", "2019-04-01 12:00:00 AM", "2019-04-01 12:00:00 AM", "2019-03-31 11:00:00 PM", "2019-03-31 10:36:00 PM"},
+		{"2019-04-01 01:00:00 AM", "2019-05-01 12:00:00 AM", "2019-04-02 12:00:00 AM", "2019-04-01 02:00:00 AM", "2019-04-01 01:01:00 AM"},
+		{"2019-01-01 12:00:00 AM", "2019-02-01 12:00:00 AM", "2019-01-02 12:00:00 AM", "2019-01-01 01:00:00 AM", "2019-01-01 12:01:00 AM"},
+	}
+
+	for _, tlist := range timeArray {
+		t, _ := time.Parse("2006-01-02 03:04:05 PM", tlist[0])
+		*LogRotateInterval = "month"
+		assert.Equal(tlist[1], getStartOfNextTime(t).Format("2006-01-02 03:04:05 PM"))
+		*LogRotateInterval = "day"
+		assert.Equal(tlist[2], getStartOfNextTime(t).Format("2006-01-02 03:04:05 PM"))
+		*LogRotateInterval = "hour"
+		assert.Equal(tlist[3], getStartOfNextTime(t).Format("2006-01-02 03:04:05 PM"))
+		*LogRotateInterval = "minute"
+		assert.Equal(tlist[4], getStartOfNextTime(t).Format("2006-01-02 03:04:05 PM"))
+	}
+}
 
 // Test that shortHostname works as advertised.
 func TestShortHostname(t *testing.T) {

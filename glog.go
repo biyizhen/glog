@@ -1172,9 +1172,10 @@ func (l *loggingT) exit(err error) {
 type syncBuffer struct {
 	logger *loggingT
 	*bufio.Writer
-	file   *os.File
-	sev    severity
-	nbytes uint64 // The number of bytes written to this file
+	file           *os.File
+	sev            severity
+	nbytes         uint64    // The number of bytes written to this file
+	nextRotateTime time.Time // Time of next rotate
 }
 
 func (sb *syncBuffer) Sync() error {
@@ -1182,7 +1183,7 @@ func (sb *syncBuffer) Sync() error {
 }
 
 func (sb *syncBuffer) Write(p []byte) (n int, err error) {
-	if sb.nbytes+uint64(len(p)) >= MaxSize {
+	if sb.shouldRotateFile(uint64(len(p))) {
 		if err := sb.rotateFile(time.Now()); err != nil {
 			sb.logger.exit(err)
 		}
@@ -1195,6 +1196,12 @@ func (sb *syncBuffer) Write(p []byte) (n int, err error) {
 	return
 }
 
+// shouldRotateFile check whether should rotate file
+func (sb *syncBuffer) shouldRotateFile(l uint64) bool {
+	return sb.nbytes+l >= MaxSize ||
+		!time.Now().Before(sb.nextRotateTime)
+}
+
 // rotateFile closes the syncBuffer's file and starts a new one.
 func (sb *syncBuffer) rotateFile(now time.Time) error {
 	if sb.file != nil {
@@ -1204,6 +1211,7 @@ func (sb *syncBuffer) rotateFile(now time.Time) error {
 	var err error
 	sb.file, _, err = create(severityName[sb.sev], now)
 	sb.nbytes = 0
+	sb.nextRotateTime = getStartOfNextTime(time.Now())
 	if err != nil {
 		return err
 	}
@@ -1773,4 +1781,49 @@ func SubString(str string, start int, end int) (subString string, err error) {
 	}
 	subString = string(rs[start:end])
 	return
+}
+
+// getStartOfNextTime gets the next time period by time
+func getStartOfNextTime(t time.Time) time.Time {
+	switch *LogRotateInterval {
+	case "month":
+		return getStartOfNextMonth(t)
+	case "day":
+		return getStartOfNextDay(t)
+	case "hour":
+		return getStartOfNextHour(t)
+	case "minute":
+		return getStartOfNextMinute(t)
+	default:
+		return getStartOfNextDay(t)
+	}
+}
+
+// getStartOfNextMonth start time of next month
+func getStartOfNextMonth(t time.Time) time.Time {
+	m := t.Month()
+	for {
+		t = t.AddDate(0, 0, 28)
+		if t.Month() != m {
+			return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
+		}
+	}
+}
+
+// getStartOfNextDay start time of next day
+func getStartOfNextDay(t time.Time) time.Time {
+	t = t.AddDate(0, 0, 1)
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+// getStartOfNextHour start time of next hour
+func getStartOfNextHour(t time.Time) time.Time {
+	t = t.Add(time.Hour)
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, t.Location())
+}
+
+// getStartOfNextMinute start time of next minute
+func getStartOfNextMinute(t time.Time) time.Time {
+	t = t.Add(time.Minute)
+	return time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), 0, 0, t.Location())
 }
