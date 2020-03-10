@@ -565,3 +565,187 @@ func TestTruncate(t *testing.T) {
 	a.Contains(message, "testmaxlogmessagelen1234567890测试中文哈哈哈哈哈哈哈哈哈哈哈")
 	a.False(strings.HasSuffix(message, "..."))
 }
+
+type T struct {
+	SliceIfWithRealNameTag []interface{} `filter:"realname"`
+	SliceIfWithoutRealNameTag []interface{}
+
+	SliceStrWithRealNameTag []string `filter:"realname"`
+	SliceStrWithoutRealNameTag []string
+}
+
+func TestSSliceEncrypt1(t *testing.T)  {
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+
+	//[]interface{} 元素是String
+	val1 := T{
+		SliceIfWithRealNameTag: []interface{}{
+			"TI（加密）有限公司",
+		},
+		SliceIfWithoutRealNameTag: []interface{}{
+			"TI（未加密）有限公司",
+		},
+		SliceStrWithRealNameTag: []string{
+			"TS（加密）有限公司",
+		},
+		SliceStrWithoutRealNameTag: []string{
+			"TS（未加密）有限公司",
+		},
+	}
+	Info(val1)
+
+	a := assert.New(t)
+	message := contents(infoLog)
+
+	a.Contains(message, ShrineRealName("TI（加密）有限公司"))
+	a.Contains(message, "TI（未加密）有限公司")
+	a.Contains(message, ShrineRealName("TS（加密）有限公司"))
+	a.Contains(message, "TS（未加密）有限公司")
+}
+func TestSSliceEncrypt2(t *testing.T) {
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+
+	//[]interface{} 元素非String
+	val2 := T{
+		SliceIfWithRealNameTag: []interface{}{
+			map[string]string{
+				"1": "TIM（未加密）有限公司",
+			},
+		},
+		SliceIfWithoutRealNameTag: []interface{}{
+			[]string{
+				"2", "TISlice（未加密）有限公司",
+			},
+			"TIString（未加密）有限公司",
+		},
+		SliceStrWithRealNameTag: []string{
+			"TS（加密）有限公司",
+		},
+		SliceStrWithoutRealNameTag: []string{
+			"TS（未加密）有限公司",
+		},
+	}
+	Info(val2)
+
+	a := assert.New(t)
+	message := contents(infoLog)
+
+	a.Contains(message, "TIM（未加密）有限公司")
+	a.Contains(message, "TISlice（未加密）有限公司")
+	a.Contains(message, "TIString（未加密）有限公司")
+	a.Contains(message, ShrineRealName("TS（加密）有限公司"))
+	a.Contains(message, "TS（未加密）有限公司")
+}
+func TestSSliceEncrypt3(t *testing.T)  {
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+
+	//嵌套结构体
+	type T1 struct {
+		T
+		SliceStruWithRealNameTag []T `filter:"realname"`
+		MapStruWithRealNameTag map[string]T `filter:"realname"`
+	}
+	val3 := T1{
+		T: T{
+			SliceIfWithRealNameTag: []interface{}{
+				"TI（加密）有限公司",
+			},
+			SliceIfWithoutRealNameTag: []interface{}{
+				"TI（未加密）有限公司",
+			},
+			SliceStrWithRealNameTag: []string{
+				"TS（加密）有限公司",
+			},
+			SliceStrWithoutRealNameTag: []string{
+				"TS（未加密）有限公司",
+			},
+		},
+		SliceStruWithRealNameTag: []T{
+			T{
+				SliceIfWithRealNameTag: []interface{}{
+					"STI Normal（加密）有限公司",
+				},
+				SliceIfWithoutRealNameTag: []interface{}{
+					"STI Normal（未加密）有限公司",
+				},
+				SliceStrWithRealNameTag: []string{
+					"STS Normal（加密）有限公司",
+				},
+				SliceStrWithoutRealNameTag: []string{
+					"STS Normal（未加密）有限公司",
+				},
+			},
+			T{
+				SliceIfWithRealNameTag: []interface{}{
+					1,
+					"STI MIX（未加密1）有限公司",
+				},
+				SliceIfWithoutRealNameTag: []interface{}{
+					2,
+					"STI MIX（未加密2）有限公司",
+				},
+				SliceStrWithRealNameTag: []string{
+					"STS MIX（加密）有限公司",
+				},
+				SliceStrWithoutRealNameTag: []string{
+					"STS MIX（未加密）有限公司",
+				},
+			},
+		},
+		MapStruWithRealNameTag: map[string]T{
+			"val4_1": 		T{
+				SliceIfWithRealNameTag: []interface{}{
+					"MTI Normal（加密）有限公司",
+				},
+				SliceIfWithoutRealNameTag: []interface{}{
+					"MTI Normal（未加密）有限公司",
+				},
+				SliceStrWithRealNameTag: []string{
+					"MTS Normal（加密）有限公司",
+				},
+				SliceStrWithoutRealNameTag: []string{
+					"MTS Normal（未加密）有限公司",
+				},
+			},
+			"val4_2": 		T{
+				SliceIfWithRealNameTag: []interface{}{
+					1,
+					"MTI MIX（未加密1）有限公司",
+				},
+				SliceIfWithoutRealNameTag: []interface{}{
+					2,
+					"MTI MIX（未加密2）有限公司",
+				},
+			},
+		},
+	}
+	Info(val3)
+
+	a := assert.New(t)
+	message := contents(infoLog)
+
+	a.Contains(message, ShrineRealName("TI（加密）有限公司"))
+	a.Contains(message, "TI（未加密）有限公司")
+	a.Contains(message, ShrineRealName("TS（加密）有限公司"))
+	a.Contains(message, "TS（未加密）有限公司")
+
+	a.Contains(message, ShrineRealName("STI Normal（加密）有限公司"))
+	a.Contains(message, "STI Normal（未加密）有限公司")
+	a.Contains(message, ShrineRealName("STS Normal（加密）有限公司"))
+	a.Contains(message, "STS Normal（未加密）有限公司")
+
+	a.Contains(message, "STI MIX（未加密1）有限公司")
+	a.Contains(message, "STI MIX（未加密2）有限公司")
+	a.Contains(message, ShrineRealName("STS MIX（加密）有限公司"))
+	a.Contains(message, "STS MIX（未加密）有限公司")
+
+	a.Contains(message, ShrineRealName("MTI Normal（加密）有限公司"))
+	a.Contains(message, "MTI Normal（未加密）有限公司")
+	a.Contains(message, ShrineRealName("MTS Normal（加密）有限公司"))
+	a.Contains(message, "MTS Normal（未加密）有限公司")
+	a.Contains(message, "MTI MIX（未加密1）有限公司")
+	a.Contains(message, "MTI MIX（未加密2）有限公司")
+}
