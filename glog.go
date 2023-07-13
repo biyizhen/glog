@@ -1819,7 +1819,7 @@ func ShrineEmail(email string) (shrineStr string) {
 	startPos := strings.Index(email, "@")
 	headStr, err := SubString(email, 0, startPos)
 	if err != nil {
-		Warningf("SubString ShrineEmail headStr faild, email=%s error=%s", email, err)
+		Warningf("SubString ShrineEmail headStr faild, email=%s error=%s", strMask(email, len(email)/2, 4), err)
 		shrineStr = ""
 		return
 	}
