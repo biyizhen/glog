@@ -749,3 +749,25 @@ func TestSSliceEncrypt3(t *testing.T)  {
 	a.Contains(message, "MTI MIX（未加密1）有限公司")
 	a.Contains(message, "MTI MIX（未加密2）有限公司")
 }
+
+func TestShrineEmail(t *testing.T) {
+	tests := []struct {
+		name          string
+		email         string
+		wantShrineStr string
+	}{
+		{"email length greater than 3", "abcd@xyz.com", "abc***@xyz.com"},
+		{"email length equal 3", "abc@xyz.com", "abc@xyz.com"},
+		{"email less equal 3", "ab@xyz.com", "ab@xyz.com"},
+		{"mobile format", "15600182790", ""},
+		{"word format", "abcdef", ""},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if gotShrineStr := ShrineEmail(tt.email); gotShrineStr != tt.wantShrineStr {
+				t.Errorf("ShrineEmail() = %v, want %v", gotShrineStr, tt.wantShrineStr)
+			}
+		})
+	}
+}
