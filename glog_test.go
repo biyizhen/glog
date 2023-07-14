@@ -757,10 +757,18 @@ func TestShrineEmail(t *testing.T) {
 		wantShrineStr string
 	}{
 		{"email length greater than 3", "abcd@xyz.com", "abc***@xyz.com"},
+		{"email length greater than 3", "abcd123e@xyz.com", "abc***@xyz.com"},
 		{"email length equal 3", "abc@xyz.com", "abc@xyz.com"},
 		{"email less equal 3", "ab@xyz.com", "ab@xyz.com"},
+		{"email less equal 3", "a@xyz.com", "a@xyz.com"},
+		{"email less equal 3", "@xyz.com", "@xyz.com"},
+		{"email less equal 3", "a@x.com", "a@x.com"},
+		{"email less equal 3", "a@.com", "a@.com"},
+		{"email less equal 3", "a@xy.com", "a@xy.com"},
 		{"mobile format", "15600182790", ""},
+		{"number format", "12345", ""},
 		{"word format", "abcdef", ""},
+		{"word format", "a", ""},
 	}
 	for _, tt := range tests {
 		tt := tt
